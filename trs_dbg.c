@@ -5,7 +5,8 @@ void trace(const char *  format, ...){
 	va_list ap;
 	va_start(ap, format);
 	vprintf(format, ap);
-	va_end(ap);
+	va_end(ap); /// тест1
+
+
 }
 
-я умею заливать с терминала на гит хаб 
