@@ -7,7 +7,7 @@ typedef word Adress;
 
 #define MEMSIZE (64 * 1024)
 
-byte mem[MEMSIZE];
+word mem[MEMSIZE];
 
 void b_write(Adress adr, byte b); // пишем байт b по адресу adr
 byte b_read (Adress adr); // читаем байт по адресу adr;
@@ -16,40 +16,84 @@ word w_read (Adress adr); // читаем слово по адресу adr
 
 
 void test_mem() {
-	byte b0 = 0x0a; // пишем байт , читаем байт
-	b_write (2, b0);
-	byte bres = b_read(2);
-	printf("%02hhx = %02hhx\n",b0, bres ); // hhx - half half hex (4) 
-	//%02hhx - ширина 2 с ведущими нулями
-	assert(b0 == bres); // чтобы в мае гулять на природе и шашлыки жарить
-						// ну или ботать матан 
 
-	// пишем 2 байта читаем слово
+	byte b0 = 0x0a; // пишем байт , читаем байт
 	byte b1 = 0x0b;
 	word w = 0x0b0a;
+
+	//ТЕСТ№1
+	w_write (0, w);//записываем слово
+	word wres = w_read(0);//читаем слово 
+	printf("%04hx = %04hx\n",w, wres ); // hhx - half half hex (4) 
+	//%02hhx - ширина 2 с ведущими нулями
+	assert(w == wres); // чтобы в мае гулять на природе и шашлыки жарить
+						// ну или ботать матан 
+	
+	//ТЕСТ№2 читаем слово пишем два байта
+
 	Adress a = 4;
-	b_write(a, b0);
-	b_write(a+1, b1);
-	word wres = w_read(a);
-	printf("ww/br \t %04hx = %02hhx%02hhx\n", wres, b1, b0 );
-	assert(w == wres);
+	w_write(a, w);
+	word b0res = b_read(a);
+	word b1res = b_read(a+1);
+	printf("ww/br \t %04hx = %02hhx%02hhx\n", wres, b1res, b0res );
+	assert (w == wres);
+
+
+	//ТЕСТ№3 проверка функции b_write
+
+	word w0 = 0x0b0a;
+	word w1 = 0x0c0c;
+	byte b = 0x0c;
+	w_write(4, w0);
+
+	b_write(4,b);
+	b_write(5,b);
+	word wres1 = w_read(4);//читаем слово  
+	printf("wo/bb \t %04hx = %02hhx%02hhx\n", wres1, b, b);
+	assert(w1 == wres1);
+	
+	
 }
+
 int main () {
 	test_mem();
 	return 0;
 }
 
 void b_write(Adress adr, byte b) {
-	mem[adr] = b;
+	word x;
+	if (adr % 2 == 0) {
+		x = mem[adr];
+		x = x>>8;
+		mem[adr] = (x<<8) | (word)b;
+	}
+	else {
+		x = mem[adr-1];
+		mem[adr-1] = (byte)x | ((word)b<<8);
+	}
+
+
 }
 
-
-
-word w_read (Adress a) {
-	word w = ((word)mem[a+1]) << 8;
-	//printf("w = %x\n", w );
-	w = w | mem[a];
-
-	return w;
+byte b_read (Adress adr) {
+	byte b;
+	if (adr % 2 == 0)
+		b = (byte)mem[adr];
+	else {
+		word w = mem[adr-1];
+		b = (byte)(w >> 8);
+	}
+	return b;
 }
+
+word w_read (Adress adr) {
+	assert(adr % 2 == 0);
+	return mem [adr];
+}
+
+void w_write (Adress adr, word w) {
+	assert(adr % 2 == 0);
+	mem[adr] = w;
+}
+
 
