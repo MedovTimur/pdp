@@ -7,3 +7,5 @@ void trace(const char *  format, ...){
 	vprintf(format, ap);
 	va_end(ap);
 }
+
+я умею заливать с терминала на гит хаб 
