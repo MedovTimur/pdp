@@ -9,10 +9,7 @@ typedef word Adress;
 #define pc reg[7]
 
 word mem[MEMSIZE];
-<<<<<<< HEAD
-=======
 word reg[8]; //регистры R0 .. R7
->>>>>>> 439c5ef56d1399443af737be0e98dd2997f57ab4
 
 void b_write(Adress adr, byte b); // пишем байт b по адресу adr
 byte b_read (Adress adr); // читаем байт по адресу adr;
@@ -76,36 +73,8 @@ void b_write(Adress adr, byte b) {
 		x = mem[adr-1];
 		mem[adr-1] = (byte)x | ((word)b<<8);
 	}
-<<<<<<< HEAD
 
-=======
->>>>>>> 439c5ef56d1399443af737be0e98dd2997f57ab4
 
-}
-
-<<<<<<< HEAD
-byte b_read (Adress adr) {
-	byte b;
-	if (adr % 2 == 0)
-		b = (byte)mem[adr];
-	else {
-		word w = mem[adr-1];
-		b = (byte)(w >> 8);
-	}
-	return b;
-}
-
-word w_read (Adress adr) {
-	assert(adr % 2 == 0);
-	return mem [adr];
-}
-
-void w_write (Adress adr, word w) {
-	assert(adr % 2 == 0);
-	mem[adr] = w;
-}
-
-=======
 }
 
 byte b_read (Adress adr) {
@@ -129,7 +98,4 @@ void w_write (Adress adr, word w) {
 	mem[adr] = w;
 }
 
-
-
->>>>>>> 439c5ef56d1399443af737be0e98dd2997f57ab4
 
