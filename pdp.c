@@ -1,23 +1,12 @@
 #include <stdio.h>
 #include <assert.h>
-
-typedef unsigned char byte; //8 bit
-typedef unsigned short int word; // 16 bit
-typedef word Adress; 
-
-#define MEMSIZE (64 * 1024)
-#define pc reg[7]
-
-word mem[MEMSIZE];
-word reg[8]; //регистры R0 .. R7
-
-void b_write(Adress adr, byte b); // пишем байт b по адресу adr
-byte b_read (Adress adr); // читаем байт по адресу adr;
-void w_write(Adress adr, word w); // пишем слово w по адресу adr
-word w_read (Adress adr); // читаем слово по адресу adr
+#include "headers.h"
 
 
-void test_mem() {
+
+
+
+/*void test_mem() {
 
 	byte b0 = 0x0a; // пишем байт , читаем байт
 	byte b1 = 0x0b;
@@ -53,13 +42,35 @@ void test_mem() {
 	word wres1 = w_read(4);//читаем слово  
 	printf("wo/bb \t %04hx = %02hhx%02hhx\n", wres1, b, b);
 	assert(w1 == wres1);
-	
-	
+}
+*/
+void load_file(const char * file_name);
+
+int main (int argc, char * argv[]) {
+	//printf("%d, %s\n", argc, argv[0] );
+	load_file(argv[1]);
+	run();
+	//test_mem();
+	return 0;
 }
 
-int main () {
-	test_mem();
-	return 0;
+const Command cmd[] = {
+	{0170000, 0000000, "HALT",	do_halt,	NO_PARAM},
+	{0170000, 0060000, "ADD",	do_add,		HAS_SS|HAS_DD}, 
+	{0170000, 0010000, "MOV",	do_mov,		HAS_SS|HAS_DD}};
+
+void load_file(const char * file_name){
+	FILE * f_inp = fopen(file_name, "rb");
+	assert(f_inp);
+	unsigned int start = 0, i = 0, n = 0 ,w = 0;
+
+	while(2 == fscanf(f_inp,"%x%x",&start, &n)){
+		for (i = 0; i < n; i++){
+	     fscanf (f_inp, "%x", &w);
+		 b_write (start+i, (byte)w);
+		}
+	}
+	fclose (f_inp);
 }
 
 void b_write(Adress adr, byte b) {
