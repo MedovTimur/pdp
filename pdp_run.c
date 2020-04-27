@@ -1,50 +1,32 @@
-#include "pdp.h"
-#include "stdio.h"
-#include "stdlib.h"
 
-#define NO_PARAM 0
-#define HAS_SS 1
-#define HAS_DD 2
-
-void do_mov()
-void do_add()
-void do_nothing()
-struct mr get_mr(word w)
-
-typedef struct {
-	word mask;
-	word opcode;
-	char * name;
-	void (*do_func)(void);
-	char params;
-} Command;
+#include <stdio.h>
+#include <stdlib.h>
+#include "headers.h"
 
 
-Command cmd[] = {
-	{0777777, 0000000, "HALT",	do_halt,	NO_PARAM},
-	{0170000, 0060000, "ADD",	do_add,		HAS_SS|HAS_DD}, 
-	{0770000, 0010000, "MOV",	do_mov,		HAS_SS|HAS_DD},
-
-struct mr {
-	word adr; // адрес аргумента
-	word val; // значение аргумента
-	word space; // адрес mem[] или reg[]
-}ss,dd;
+void trace(const char *  format, ...){
+	va_list ap;
+	va_start(ap, format);
+	vprintf(format, ap);
+	va_end(ap);
+}
 
 struct mr get_mr(word w) {
 	struct mr res;
+	res.space = MEM;
 	int r = w & 7;            // номер регистра 
 	int mode = (w >> 3) & 7; // номер моды
 	switch (mode) {
 		case 0:   // R3
 			res.adr = r;
 			res.val = reg[r];
-			trace ("R%o", r);
+			res.space = REG;
+			trace ("R%o ", r);
 			break;
 		case 1:   // (R3)
 			res.adr = reg[r];
 			res.val = w_read(res.adr) ;
-			trace ("(R%o)", r);
+			trace ("(R%o) ", r);
 			break;
 		case 2:   // (R3)+
 			res.adr = reg[r];
@@ -61,6 +43,7 @@ struct mr get_mr(word w) {
 			exit(1); 			
 
 	}
+	return res;
 }
 
 void run() {
@@ -71,29 +54,40 @@ void run() {
 									  // 0 в начале для красоты; 
 		pc += 2;
 
-		if (w == 0) {
-			trace("halt\n");
-			do_halt();
-		}
-		else if ((w & 0170000) == 0010000) {     //01SSDD (0 001 s s d d) & (1 111 000 000 000 000)        
-												 // 0170000 = 0xF000
-			trace("mov\n");
-			do_mov();
-			ss = get_mr(w>>6);
-			dd = get_mr(w);
+		for(int i = 0; i < 3; i++)
+			if ((w & cmd[i].mask) == cmd[i].opcode){
+				trace("%s ", cmd[i].name);
+				if((cmd[i].params & 1) == 1 ){   // has_ss = 00000001 & 1 = 1
+					ss = get_mr(w>>6);
+				}
+				if((cmd[i].params & 2) == 2){   // has_dd = 00000010 & 2 = 2
+					dd = get_mr(w);
+				}
 
+				trace("\n");
+				cmd[i].do_func();
+			}	
 
-		} 
 	}
 
 }
 
 void do_mov(){
-	w_write(dd.adr, ss.val);
+	if (dd.space == REG)	
+		reg[dd.adr] = ss.val;
+	if (dd.space == MEM)
+		w_write(dd.adr, ss.val);
+	if (dd.adr == odata)
+		printf ("  %c", mem[odata]);
 }
+
 void do_add(){
-	w_write (dd.adr, ss.val + dd.val);
+	if (dd.space == REG)
+		reg[dd.adr] = ss.val + dd.val;
+	if (dd.space == MEM)
+		w_write (dd.adr, ss.val + dd.val);	
 }
+
 void do_movb() {
 	b_write (dd.adr, (byte)ss.val);
 }
