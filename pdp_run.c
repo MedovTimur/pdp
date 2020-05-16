@@ -37,6 +37,15 @@ struct mr get_mr(word w) {
 			else 
 				trace(" (R%o)+ ", r);
 			break;	
+		case 3: // @(R3)+
+			res.adr = w_read(reg[r]);
+			res.val = w_read(res.adr);
+			reg[r] += 2;
+			if (r != 7)
+				printf( "@(R%d)+", r);
+			else 
+				printf( "@#%o", res.adr);
+			break;
 		default:
 			fprintf(stderr,
 				"Mode %o NOT IMPLEMENTED YET!\n", mode);
@@ -47,6 +56,7 @@ struct mr get_mr(word w) {
 }
 
 void run() {
+	int num_cmd_command = 4;
 	pc = 01000 ;
 	while (1) {
 		word w = w_read(pc);
@@ -54,22 +64,53 @@ void run() {
 									  // 0 в начале для красоты; 
 		pc += 2;
 
-		for(int i = 0; i < 3; i++)
+		for(int i = 0; i < num_cmd_command; i++)
 			if ((w & cmd[i].mask) == cmd[i].opcode){
 				trace("%s ", cmd[i].name);
+				it_is_byte = (w>>15)&1; 
 				if((cmd[i].params & 1) == 1 ){   // has_ss = 00000001 & 1 = 1
 					ss = get_mr(w>>6);
 				}
 				if((cmd[i].params & 2) == 2){   // has_dd = 00000010 & 2 = 2
 					dd = get_mr(w);
 				}
+				if((cmd[i].params & 4) == 4){    //// has_nn = 00000100 & 4 = 4
+					nn = w & 0000077;
+					Rnn = (w>>6)&7; //077(R)nn 
+				}
+			 
 
 				trace("\n");
 				cmd[i].do_func();
+				break;
 			}	
 
 	}
 
+}
+
+void set_flags(word w){
+	Z = 0;
+	if (it_is_byte)
+		N = (w>>7)&1;
+	else
+		N = (w>>15)&1;
+	if (w==0)
+		Z = 1;
+		//  printf (" N = %d, Z = %d", N, Z);
+}
+
+void set_C (word w){
+	C = (w>>15)&1;
+}
+
+void do_sob() {
+
+	reg[Rnn] = reg[Rnn]-1;
+	if (reg[Rnn] != 0) {
+		pc = pc - 2*nn;
+	}
+	
 }
 
 void do_mov(){
@@ -85,7 +126,10 @@ void do_add(){
 	if (dd.space == REG)
 		reg[dd.adr] = ss.val + dd.val;
 	if (dd.space == MEM)
-		w_write (dd.adr, ss.val + dd.val);	
+		w_write (dd.adr, ss.val + dd.val);
+	int flag = ss.val + dd.val;
+	set_flags(ss.val);
+	set_C(ss.val);
 }
 
 void do_movb() {
