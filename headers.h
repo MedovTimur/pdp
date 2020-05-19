@@ -4,18 +4,27 @@
 #include <stdio.h>
 #include <stdarg.h>
 
+typedef unsigned char byte; //8 bit
+typedef unsigned short int word; // 16 bit
+typedef word Adress;
+
 #define MEMSIZE (64 * 1024)
 #define pc reg[7]
 #define NO_PARAM 0
 #define HAS_SS 1
 #define HAS_DD 2
+#define HAS_NN 4
+#define HAS_XX 8
 #define REG 1456
 #define MEM 2345
 #define odata 0177566
+#define ostat 0177564
+byte N, Z, V, C;
+byte it_is_byte;
+int nn, xx;
 
-typedef unsigned char byte; //8 bit
-typedef unsigned short int word; // 16 bit
-typedef word Adress; 
+int Rnn;
+
 
 void b_write(Adress adr, byte b); // пишем байт b по адресу adr
 byte b_read (Adress adr); // читаем байт по адресу adr;
@@ -31,11 +40,22 @@ struct mr {
 
 struct mr ss, dd;
 
+void set_flags(word w);
+void set_C (word w);
 void do_mov();
+void do_movb();
 void do_halt();
 void do_add();
 void do_nothing();
 struct mr get_mr(word w);
+void do_sob();
+void do_br();
+void do_beq();
+void do_tst();
+void do_bpl();
+void do_tstb();
+void do_jmp();
+void do_clr();
 
 word mem[MEMSIZE];
 word reg[8]; //регистры R0 .. R7
