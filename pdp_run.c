@@ -16,6 +16,7 @@ struct mr get_mr(word w) {
 	res.space = MEM;
 	int r = w & 7;            // номер регистра 
 	int mode = (w >> 3) & 7; // номер моды
+	int e; // для 6 и 7 мод
 	switch (mode) {
 		case 0:   // R3
 			res.adr = r;
@@ -41,10 +42,48 @@ struct mr get_mr(word w) {
 			res.adr = w_read(reg[r]);
 			res.val = w_read(res.adr);
 			reg[r] += 2;
-			if (r != 7)
-				printf( "@(R%d)+", r);
+			if (r == 7)
+				trace( "@#%o ", res.adr);
 			else 
-				printf( "@#%o", res.adr);
+				trace( "@(R%d)+", r);
+			break;
+		case 4: // -(R)
+            if (it_is_byte == 1) // байтовая операция?
+			 reg[r] -= 1; 
+            else
+            	reg[r] -= 2; // слово
+
+        	res.adr = reg[r];
+        	res.val = w_read(res.adr);
+        	trace( "-(R%d)", r);
+        	break;
+        case 5: // @-(R) аналог 3-ей моды
+        	reg[r] -=2;
+        	res.adr = w_read(reg[r]);
+        	res.val = w_read(res.adr);
+			trace( "@-(R%d)", r);
+			break;
+		case 6: // содержимое регистра складывается с числом, записанным после команды, и полученная сумма используется в качестве адрес операнда
+			e = w_read(pc);
+			pc +=2;
+			res.adr = reg[r] + e;
+			//res.adr = reg[r] + w_read(pc) +2;
+			//pc += 2;
+			res.val = w_read(res.adr);
+			if (r !=7 )
+			   trace ("(R%d)", r);
+			else
+			   trace(" %06o", res.adr);
+			break;
+		case 7:
+			e = w_read(pc);
+			pc += 2;
+			res.adr = w_read(reg[r] + e);
+			res.val = w_read(res.adr);
+			if (r != 7)
+			   trace ("@%o(R%d)", e, r);
+			else
+			   trace("@%06o", res.adr);
 			break;
 		default:
 			fprintf(stderr,
@@ -56,7 +95,7 @@ struct mr get_mr(word w) {
 }
 
 void run() {
-	int num_cmd_command = 4;
+	int num_cmd_command = 10;
 	pc = 01000 ;
 	while (1) {
 		word w = w_read(pc);
@@ -67,7 +106,7 @@ void run() {
 		for(int i = 0; i < num_cmd_command; i++)
 			if ((w & cmd[i].mask) == cmd[i].opcode){
 				trace("%s ", cmd[i].name);
-				it_is_byte = (w>>15)&1; 
+				it_is_byte = (w>>15)&1; // проверяем байтовая ли операция
 				if((cmd[i].params & 1) == 1 ){   // has_ss = 00000001 & 1 = 1
 					ss = get_mr(w>>6);
 				}
@@ -78,6 +117,8 @@ void run() {
 					nn = w & 0000077;
 					Rnn = (w>>6)&7; //077(R)nn 
 				}
+				if ((cmd[i].params & 8) == 8)
+					xx = (char)w;
 			 
 
 				trace("\n");
@@ -122,19 +163,67 @@ void do_mov(){
 		printf ("  %c", mem[odata]);
 }
 
-void do_add(){
+void do_add () {
+	int res_for_flag = ss.val + dd.val;
+		if (dd.adr <= 999)
+			reg[dd.adr] = ss.val + dd.val;
+		else
+		w_write(dd.adr, ss.val + dd.val);
+
+	set_flags(res_for_flag);
+	set_C (res_for_flag);
+
+}
+
+void do_movb() {
 	if (dd.space == REG)
-		reg[dd.adr] = ss.val + dd.val;
+		reg[dd.adr] = (word)((byte)ss.val);
 	if (dd.space == MEM)
-		w_write (dd.adr, ss.val + dd.val);
-	int flag = ss.val + dd.val;
+		b_write (dd.adr, (byte)ss.val);
+	if (dd.adr == odata)
+		printf (" %c\n", mem[odata]);
 	set_flags(ss.val);
 	set_C(ss.val);
 }
 
-void do_movb() {
-	b_write (dd.adr, (byte)ss.val);
+void do_br() {
+	printf("xx = %d \n", xx);
+	pc = pc + 2*xx;
+	printf ("%06o ", pc) ; 
 }
+
+void do_beq() {
+	if (Z==1) 
+		do_br ();
+}
+
+void do_bne() {
+	if (Z==0) 
+		do_br ();
+}
+
+void do_bpl() {
+	if (N == 0) 
+		do_br();
+}
+void do_tst() {
+	set_flags(dd.val);
+	
+}
+void do_tstb() {
+	set_flags(dd.val);
+}
+
+void do_jmp() {
+    pc = dd.val;
+}
+void do_clr() {
+    w_write(dd.adr, 0);
+    N = 0;
+    Z = 1;
+    C = 0;
+}
+
 
 void do_halt(){
 	trace("\nR0 = %06o R2 = %06o R4 = %06o sp = %06o\
