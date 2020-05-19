@@ -10,6 +10,7 @@ typedef word Adress;
 
 #define MEMSIZE (64 * 1024)
 #define pc reg[7]
+#define sp reg[6]
 #define NO_PARAM 0
 #define HAS_SS 1
 #define HAS_DD 2
@@ -54,8 +55,8 @@ void do_beq();
 void do_tst();
 void do_bpl();
 void do_tstb();
-void do_jmp();
 void do_clr();
+void do_unknown();
 
 word mem[MEMSIZE];
 word reg[8]; //регистры R0 .. R7

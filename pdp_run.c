@@ -146,7 +146,6 @@ void set_C (word w){
 }
 
 void do_sob() {
-
 	reg[Rnn] = reg[Rnn]-1;
 	if (reg[Rnn] != 0) {
 		pc = pc - 2*nn;
@@ -160,12 +159,15 @@ void do_mov(){
 	if (dd.space == MEM)
 		w_write(dd.adr, ss.val);
 	if (dd.adr == odata)
-		printf ("  %c", mem[odata]);
+		trace ("  %c", mem[odata]);
+	set_flags(ss.val);
+	set_C(ss.val);
+    
 }
 
 void do_add () {
 	int res_for_flag = ss.val + dd.val;
-		if (dd.adr <= 999)
+		if (dd.adr <= 999) // или 7
 			reg[dd.adr] = ss.val + dd.val;
 		else
 		w_write(dd.adr, ss.val + dd.val);
@@ -185,6 +187,7 @@ void do_movb() {
 	set_flags(ss.val);
 	set_C(ss.val);
 }
+
 
 void do_br() {
 	printf("xx = %d \n", xx);
@@ -214,15 +217,20 @@ void do_tstb() {
 	set_flags(dd.val);
 }
 
-void do_jmp() {
-    pc = dd.val;
-}
 void do_clr() {
-    w_write(dd.adr, 0);
-    N = 0;
-    Z = 1;
-    C = 0;
+	w_write(dd.adr, 0);
+	N = 0;
+	Z = 1;
+	C = 0;
 }
+
+void do_unknown()
+{
+    printf("UNKNOWN\n");
+    exit(0);
+}
+
+
 
 
 void do_halt(){
