@@ -55,9 +55,22 @@ int main (int argc, char * argv[]) {
 }
 
 const Command cmd[] = {
-	{0170000, 0000000, "HALT",	do_halt,	NO_PARAM},
+	{0177777, 0000000, "HALT",	do_halt,	NO_PARAM},
 	{0170000, 0060000, "ADD",	do_add,		HAS_SS|HAS_DD}, 
-	{0170000, 0010000, "MOV",	do_mov,		HAS_SS|HAS_DD}};
+	{0170000, 0010000, "MOV",	do_mov,		HAS_SS|HAS_DD},
+	{0177000, 0077000, "SOB",	do_sob,		HAS_NN},
+	{0170000, 0110000, "MOVb",	do_movb,	HAS_SS|HAS_DD}, 
+
+	{0177400, 0000400, "BR",	do_br,		HAS_XX},
+	{0177400, 0001400, "BEQ",	do_beq,		HAS_XX},
+
+	{0177700, 0005700, "TST",	do_tst,		HAS_DD},
+	{0177700, 0105700, "TSTb",	do_tstb,	HAS_DD}, 
+	{0177400, 0100000, "BPL",	do_bpl,		HAS_XX},
+
+	{0177700, 0005000, "CLR",	do_clr,		HAS_DD},
+
+};
 
 void load_file(const char * file_name){
 	FILE * f_inp = fopen(file_name, "rb");
@@ -66,7 +79,7 @@ void load_file(const char * file_name){
 
 	while(2 == fscanf(f_inp,"%x%x",&start, &n)){
 		for (i = 0; i < n; i++){
-	     fscanf (f_inp, "%x", &w);
+		fscanf (f_inp, "%x", &w);
 		 b_write (start+i, (byte)w);
 		}
 	}
