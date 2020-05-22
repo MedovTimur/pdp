@@ -22,7 +22,8 @@ typedef word Adress;
 #define ostat 0177564
 byte N, Z, V, C;
 byte it_is_byte;
-int nn, xx;
+int nn;
+char xx;
 
 int Rnn;
 
@@ -47,15 +48,19 @@ void do_mov();
 void do_movb();
 void do_halt();
 void do_add();
-void do_nothing();
 struct mr get_mr(word w);
 void do_sob();
 void do_br();
 void do_beq();
 void do_tst();
 void do_bpl();
+void do_bmi();
+void do_bne();
 void do_tstb();
 void do_clr();
+void do_cmp();
+void do_cmpb();
+void do_jmp();
 void do_unknown();
 
 word mem[MEMSIZE];
