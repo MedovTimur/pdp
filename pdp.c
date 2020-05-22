@@ -48,6 +48,7 @@ void load_file(const char * file_name);
 
 int main (int argc, char * argv[]) {
 	//printf("%d, %s\n", argc, argv[0] );
+	b_write(ostat, 0200);
 	load_file(argv[1]);
 	run();
 	//test_mem();
@@ -65,7 +66,12 @@ const Command cmd[] = {
 	{0177700, 0005700, "TST",	do_tst,		HAS_DD},
 	{0177700, 0105700, "TSTb",	do_tstb,	HAS_DD}, 
 	{0177400, 0100000, "BPL",	do_bpl,		HAS_XX},
+	{0177400, 0100400, "BMI",	do_bmi,		HAS_XX},
+	{0177400, 0001000, "BNE",	do_bne,		HAS_XX},
 	{0177700, 0005000, "CLR",	do_clr,		HAS_DD},
+	{0177700, 0000100, "JMP",	do_jmp,		HAS_DD},
+	{0170000, 0020000, "CMP",	do_cmp,		HAS_SS|HAS_DD},
+	{0170000, 0120000, "CMPB",	do_cmpb,	HAS_SS|HAS_DD},
 	{0000000, 0000000, "UNKNOWN", do_unknown,   NO_PARAM}
 };
 
