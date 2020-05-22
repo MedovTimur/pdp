@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "headers.h"
+#include <assert.h>
 
 
 void trace(const char *  format, ...){
@@ -31,13 +32,19 @@ struct mr get_mr(word w) {
 			break;
 		case 2:   // (R3)+
 			res.adr = reg[r];
-			res.val = w_read(res.adr);
+			
+			if(it_is_byte)
+        		res.val = b_read(res.adr);
+        	else
+        		res.val = w_read(res.adr);
 			reg[r] += 2; 
+			if (it_is_byte == 1)
+			 reg[r] -= 1;
 			if (r == 7)
 				trace("#%o ", res.val);
 			else 
 				trace(" (R%o)+ ", r);
-			break;	
+			break;
 		case 3: // @(R3)+
 			res.adr = w_read(reg[r]);
 			res.val = w_read(res.adr);
@@ -95,7 +102,7 @@ struct mr get_mr(word w) {
 }
 
 void run() {
-	int num_cmd_command = 10;
+	int num_cmd_command = 17;
 	pc = 01000 ;
 	while (1) {
 		word w = w_read(pc);
@@ -104,7 +111,7 @@ void run() {
 		pc += 2;
 
 		for(int i = 0; i < num_cmd_command; i++)
-			if ((w & cmd[i].mask) == cmd[i].opcode){
+			if ((w & cmd[i].mask) == cmd[i].opcode){	
 				trace("%s ", cmd[i].name);
 				it_is_byte = (w>>15)&1; // проверяем байтовая ли операция
 				if((cmd[i].params & 1) == 1 ){   // has_ss = 00000001 & 1 = 1
@@ -118,13 +125,14 @@ void run() {
 					Rnn = (w>>6)&7; //077(R)nn 
 				}
 				if ((cmd[i].params & 8) == 8)
-					xx = (char)w;
+					xx = w & 0000377;   ///8 последних битов
 			 
 
 				trace("\n");
 				cmd[i].do_func();
 				break;
 			}	
+		it_is_byte = 0;
 
 	}
 
@@ -138,7 +146,7 @@ void set_flags(word w){
 		N = (w>>15)&1;
 	if (w==0)
 		Z = 1;
-		//  printf (" N = %d, Z = %d", N, Z);
+	//printf (" N = %d, Z = %d\n", N, Z);
 }
 
 void set_C (word w){
@@ -162,6 +170,7 @@ void do_mov(){
 		trace ("  %c", mem[odata]);
 	set_flags(ss.val);
 	set_C(ss.val);
+	assert (pc != 0177776);
     
 }
 
@@ -183,38 +192,60 @@ void do_movb() {
 	if (dd.space == MEM)
 		b_write (dd.adr, (byte)ss.val);
 	if (dd.adr == odata)
-		printf (" %c\n", mem[odata]);
+		trace ("%c\n", mem[odata]);
+	
 	set_flags(ss.val);
 	set_C(ss.val);
 }
 
 
-void do_br() {
-	printf("xx = %d \n", xx);
+void do_br() { // branch
+	trace("xx = %d \n", xx);
 	pc = pc + 2*xx;
-	printf ("%06o ", pc) ; 
+	trace("%06o \n", pc) ; 
 }
 
-void do_beq() {
+void do_beq() { // branch if Equal
 	if (Z==1) 
 		do_br ();
 }
 
-void do_bne() {
+void do_bne() { // branch if not Equal
 	if (Z==0) 
 		do_br ();
 }
 
-void do_bpl() {
+void do_bmi() { // branch if minus
+	if (N == 1)
+		do_br ();
+}
+
+void do_bpl() { // branch if plus 
 	if (N == 0) 
 		do_br();
 }
 void do_tst() {
 	set_flags(dd.val);
+	C = 0;
 	
 }
 void do_tstb() {
+	//printf("0o%o\n", dd.val);
 	set_flags(dd.val);
+	C = 0;
+}
+	
+
+void do_jmp() {
+	pc = dd.val;
+}
+void do_cmp() {
+	set_flags(ss.val-dd.val);
+	set_C(ss.val-dd.val);
+}
+void do_cmpb() {
+	set_flags(ss.val-dd.val);
+	set_C(ss.val-dd.val);
 }
 
 void do_clr() {
@@ -224,14 +255,11 @@ void do_clr() {
 	C = 0;
 }
 
-void do_unknown()
-{
-    printf("UNKNOWN\n");
-    exit(0);
+
+void do_unknown() {
+	printf("UNKNOWN\n");
+	exit(0);
 }
-
-
-
 
 void do_halt(){
 	trace("\nR0 = %06o R2 = %06o R4 = %06o sp = %06o\
