@@ -16,31 +16,38 @@ typedef word Adress;
 #define HAS_DD 2
 #define HAS_NN 4
 #define HAS_XX 8
-#define REG 1456
-#define MEM 2345
+#define REG 4
+#define MEM 5
 #define odata 0177566
 #define ostat 0177564
-byte N, Z, V, C;
-byte it_is_byte;
-int nn;
-char xx;
+extern byte N, Z, V, C;
+extern byte it_is_byte;
+extern int nn;
+extern char xx;
+extern int Rnn;
+extern int trc;
+extern word mem[];
+extern word reg[]; //регистры R0 .. R7
 
-int Rnn;
+extern struct mr {
+	word adr; // адрес аргумента
+	word val; // значение аргумента
+	word space; // адрес mem[] или reg[]
+} ss, dd;
 
+extern const struct Command{
+	word mask;
+	word opcode;
+	char * name;
+	void (*do_func)(void);
+	char params;
+}  cmd[];
 
 void b_write(Adress adr, byte b); // пишем байт b по адресу adr
 byte b_read (Adress adr); // читаем байт по адресу adr;
 void w_write(Adress adr, word w); // пишем слово w по адресу adr
 word w_read (Adress adr); // читаем слово по адресу adr
 void run();
-
-struct mr {
-	word adr; // адрес аргумента
-	word val; // значение аргумента
-	word space; // адрес mem[] или reg[]
-}ss,dd;
-
-struct mr ss, dd;
 
 void set_flags(word w);
 void set_C (word w);
@@ -63,24 +70,8 @@ void do_cmpb();
 void do_jmp();
 void do_unknown();
 
-word mem[MEMSIZE];
-word reg[8]; //регистры R0 .. R7
-
-typedef struct {
-	word mask;
-	word opcode;
-	char * name;
-	void (*do_func)(void);
-	char params;
-} Command;
-extern const Command cmd[];
-/*Command cmd[] = {
-	{0170000, 0000000, "HALT",	do_halt,	NO_PARAM},
-	{0170000, 0060000, "ADD",	do_add,		HAS_SS|HAS_DD}, 
-	{0170000, 0010000, "MOV",	do_mov,		HAS_SS|HAS_DD}};
-*/
-
 void trace(const char *  format, ...);
+void load_file(const char * file_name);
 
 #endif
 
