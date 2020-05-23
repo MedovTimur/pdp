@@ -6,10 +6,13 @@
 
 
 void trace(const char *  format, ...){
-	va_list ap;
-	va_start(ap, format);
-	vprintf(format, ap);
-	va_end(ap);
+	if (trc != 0) {
+		va_list ap;
+		va_start(ap, format);
+		vprintf(format, ap);
+		va_end(ap);
+	}
+
 }
 
 struct mr get_mr(word w) {
@@ -18,85 +21,108 @@ struct mr get_mr(word w) {
 	int r = w & 7;            // номер регистра 
 	int mode = (w >> 3) & 7; // номер моды
 	int e; // для 6 и 7 мод
+	//trace ("R%o = %o ", r, reg[r]);
 	switch (mode) {
 		case 0:   // R3
 			res.adr = r;
 			res.val = reg[r];
 			res.space = REG;
-			trace ("R%o ", r);
+
+			trace ("R%o", r);
+
 			break;
 		case 1:   // (R3)
 			res.adr = reg[r];
 			res.val = w_read(res.adr) ;
-			trace ("(R%o) ", r);
+
+			trace ("(R%o)", r);
+
 			break;
 		case 2:   // (R3)+
 			res.adr = reg[r];
-			
-			if(it_is_byte)
-        		res.val = b_read(res.adr);
-        	else
-        		res.val = w_read(res.adr);
+
+			if(it_is_byte == 1)
+				res.val = b_read(res.adr);
+			else
+				res.val = w_read(res.adr);
+
 			reg[r] += 2; 
-			if (it_is_byte == 1)
-			 reg[r] -= 1;
-			if (r == 7)
-				trace("#%o ", res.val);
+
+			if ((it_is_byte == 1) && (r != 7))
+			 	reg[r] -= 1;
+
+			if (r == 7) 
+				trace("#%o", res.val);
 			else 
-				trace(" (R%o)+ ", r);
+				trace("(R%o)+", r);
+
 			break;
 		case 3: // @(R3)+
 			res.adr = w_read(reg[r]);
 			res.val = w_read(res.adr);
+
 			reg[r] += 2;
+
 			if (r == 7)
-				trace( "@#%o ", res.adr);
+				trace( "@#%o", res.adr);
 			else 
 				trace( "@(R%d)+", r);
+
 			break;
 		case 4: // -(R)
             if (it_is_byte == 1) // байтовая операция?
-			 reg[r] -= 1; 
+			 	reg[r] -= 1; 
             else
             	reg[r] -= 2; // слово
 
         	res.adr = reg[r];
         	res.val = w_read(res.adr);
+
         	trace( "-(R%d)", r);
+
         	break;
         case 5: // @-(R) аналог 3-ей моды
         	reg[r] -=2;
+
         	res.adr = w_read(reg[r]);
         	res.val = w_read(res.adr);
+
 			trace( "@-(R%d)", r);
+
 			break;
 		case 6: // содержимое регистра складывается с числом, записанным после команды, и полученная сумма используется в качестве адрес операнда
 			e = w_read(pc);
+
 			pc +=2;
+
 			res.adr = reg[r] + e;
-			//res.adr = reg[r] + w_read(pc) +2;
-			//pc += 2;
 			res.val = w_read(res.adr);
+
 			if (r !=7 )
-			   trace ("(R%d)", r);
+			   trace ("(R%d) ", r);
 			else
-			   trace(" %06o", res.adr);
+			   trace("%06o ", res.adr);
+
 			break;
 		case 7:
 			e = w_read(pc);
+
 			pc += 2;
+
 			res.adr = w_read(reg[r] + e);
 			res.val = w_read(res.adr);
+
 			if (r != 7)
-			   trace ("@%o(R%d)", e, r);
+			   trace ("@%o(R%d) ", e, r);
 			else
 			   trace("@%06o", res.adr);
+
 			break;
 		default:
 			fprintf(stderr,
 				"Mode %o NOT IMPLEMENTED YET!\n", mode);
-			exit(1); 			
 
+			exit(1); 			
 	}
 	return res;
 }
@@ -107,29 +133,47 @@ void run() {
 	while (1) {
 		word w = w_read(pc);
 		trace("%06o %06o: ", pc, w); // 6 цифр; o - восьмиричная система;
-									  // 0 в начале для красоты; 
+									// 0 в начале для красоты; 
 		pc += 2;
 
 		for(int i = 0; i < num_cmd_command; i++)
-			if ((w & cmd[i].mask) == cmd[i].opcode){	
-				trace("%s ", cmd[i].name);
-				it_is_byte = (w>>15)&1; // проверяем байтовая ли операция
+			if ((w & cmd[i].mask) == cmd[i].opcode){
+
+				trace("%s\t", cmd[i].name);
+				
+				it_is_byte = ( w >> 15 ) & 1; // проверяем байтовая ли операция
+
 				if((cmd[i].params & 1) == 1 ){   // has_ss = 00000001 & 1 = 1
-					ss = get_mr(w>>6);
+					ss = get_mr(w >> 6);
+					if ((cmd[i].params & 2) == 2)
+						trace(", ");
 				}
+
 				if((cmd[i].params & 2) == 2){   // has_dd = 00000010 & 2 = 2
 					dd = get_mr(w);
 				}
+
 				if((cmd[i].params & 4) == 4){    //// has_nn = 00000100 & 4 = 4
+
 					nn = w & 0000077;
-					Rnn = (w>>6)&7; //077(R)nn 
+
+					Rnn = ( w >> 6 ) & 7; //077(R)nn >> 6 & 00000111, номер регистра 
 				}
-				if ((cmd[i].params & 8) == 8)
+				if ((cmd[i].params & 8) == 8) {
 					xx = w & 0000377;   ///8 последних битов
-			 
+					trace("%o", pc + 2*xx);
+				}
+
+				cmd[i].do_func();
 
 				trace("\n");
-				cmd[i].do_func();
+
+				if (trc == 2)
+				{
+					trace ("%c%c%c  ", (N == 1) ? 'N' : 'n', (Z == 1) ? 'Z' : 'z', (C == 1) ? 'C' : 'c');
+					trace("0:%06o 1:%06o 2:%06o 3:%06o 4:%06o 5:%06o sp:%06o pc:%06o\n",\
+					reg[0], reg[2], reg[4], reg[6], reg[1], reg[3], reg[5], reg[7]);
+				}
 				break;
 			}	
 		it_is_byte = 0;
@@ -146,7 +190,6 @@ void set_flags(word w){
 		N = (w>>15)&1;
 	if (w==0)
 		Z = 1;
-	//printf (" N = %d, Z = %d\n", N, Z);
 }
 
 void set_C (word w){
@@ -154,20 +197,37 @@ void set_C (word w){
 }
 
 void do_sob() {
+	trace("R%d = %o, %o", Rnn, reg[Rnn], pc - 2 * nn);
 	reg[Rnn] = reg[Rnn]-1;
+
 	if (reg[Rnn] != 0) {
-		pc = pc - 2*nn;
+		pc = pc - 2 * nn;
 	}
 	
 }
 
 void do_mov(){
-	if (dd.space == REG)	
+	if (dd.space == REG){	
 		reg[dd.adr] = ss.val;
-	if (dd.space == MEM)
+		trace("\t\tR%d <- ", dd.adr);
+	}
+
+	if (dd.space == MEM) {
 		w_write(dd.adr, ss.val);
-	if (dd.adr == odata)
-		trace ("  %c", mem[odata]);
+		trace("\t\t[%o] <- ", dd.adr);
+	}	
+
+	if (ss.space == REG)
+		trace("R%d = %o ", ss.adr, ss.val);
+	if (ss.space == MEM)
+		trace("[%o] = %o ", ss.adr, ss.val);
+
+	if (dd.adr == odata){
+		trace("<");
+		printf ("%c", mem[odata]);
+		trace(">");
+	}
+
 	set_flags(ss.val);
 	set_C(ss.val);
 	assert (pc != 0177776);
@@ -187,22 +247,34 @@ void do_add () {
 }
 
 void do_movb() {
-	if (dd.space == REG)
+	if (dd.space == REG){	
 		reg[dd.adr] = (word)((byte)ss.val);
-	if (dd.space == MEM)
+		trace("\t\tR%d <- ", dd.adr);
+	}
+
+	if (dd.space == MEM){
 		b_write (dd.adr, (byte)ss.val);
-	if (dd.adr == odata)
-		trace ("%c\n", mem[odata]);
-	
+		trace("\t\t[%o] <- ", dd.adr);
+	}
+
+	if (ss.space == REG)
+		trace("R%d = %o ", ss.adr, ss.val);
+	if (ss.space == MEM)
+		trace("[%o] = %o ", ss.adr, ss.val);
+
+	if (dd.adr == odata){
+		trace("<");
+		printf ("%c", mem[odata]);
+		trace(">");
+	}
+
 	set_flags(ss.val);
 	set_C(ss.val);
 }
 
 
 void do_br() { // branch
-	trace("xx = %d \n", xx);
-	pc = pc + 2*xx;
-	trace("%06o \n", pc) ; 
+	pc = pc + 2 * xx; 
 }
 
 void do_beq() { // branch if Equal
@@ -220,18 +292,31 @@ void do_bmi() { // branch if minus
 		do_br ();
 }
 
-void do_bpl() { // branch if plus 
+void do_bpl() { // branch if plus
 	if (N == 0) 
 		do_br();
 }
 void do_tst() {
+	if (dd.space == MEM)
+		trace ("\t\t[%o] = %o", dd.adr, dd.val);
+
+	if (dd.space == REG)
+		trace ("\t\tR%d = %o", dd.adr, dd.val);
+
 	set_flags(dd.val);
+
 	C = 0;
-	
 }
+
 void do_tstb() {
-	//printf("0o%o\n", dd.val);
+	if (dd.space == MEM)
+		trace ("\t\t[%o] = %o", dd.adr, dd.val);
+
+	if (dd.space == REG)
+		trace ("\t\tR%d = %o", dd.adr, dd.val);
+
 	set_flags(dd.val);
+
 	C = 0;
 }
 	
@@ -262,7 +347,7 @@ void do_unknown() {
 }
 
 void do_halt(){
-	trace("\nR0 = %06o R2 = %06o R4 = %06o sp = %06o\
+	printf("\n======================== halted ===============================\nR0 = %06o R2 = %06o R4 = %06o sp = %06o\
 	\nR1 = %06o R3 = %06o R5 = %06o pc = %06o\n"  ,\
 	reg[0], reg[2], reg[4], reg[6], reg[1], reg[3], reg[5], reg[7]);
 	exit (0);
