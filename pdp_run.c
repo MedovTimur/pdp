@@ -128,7 +128,7 @@ struct mr get_mr(word w) {
 }
 
 void run() {
-	int num_cmd_command = 17;
+	int num_cmd_command = 18;
 	pc = 01000 ;
 	while (1) {
 		word w = w_read(pc);
@@ -338,6 +338,30 @@ void do_clr() {
 	N = 0;
 	Z = 1;
 	C = 0;
+}
+
+void do_rol() {
+
+	if (dd.space == REG) {
+		word temp = dd.val;
+		reg[dd.adr] = ((dd.val << 1) | C);
+		C = (temp >> 15) & 01;
+	}
+
+	else {
+		word temp = dd.val;
+		w_write(dd.adr, ((dd.val << 1) | C));
+		C = (temp >> 15) & 01;
+	}
+
+}
+
+void do_inc() {
+	//printf("\n%o %o %o\n",  dd.space, dd.adr, dd.val);
+	if (dd.space == REG)
+		reg[dd.adr] = dd.val + 1;
+	if (dd.space == MEM)
+		w_write(dd.adr, dd.val +1);
 }
 
 

@@ -2,6 +2,7 @@
 #include <assert.h>
 #include "headers.h"
 #include <string.h>
+#include <stdlib.h>
 
 word mem[MEMSIZE];
 word reg[8]; //регистры R0 .. R7
@@ -29,6 +30,10 @@ const struct Command cmd[] = {
 	{0177700, 0000100, "JMP",	do_jmp,		HAS_DD},
 	{0170000, 0020000, "CMP",	do_cmp,		HAS_SS|HAS_DD},
 	{0170000, 0120000, "CMPB",	do_cmpb,	HAS_SS|HAS_DD},
+	{0177700, 0006100, "ROL",	do_rol,		HAS_DD},
+	{0177700, 0005200, "INC",	do_inc,		HAS_DD},
+
+
 	{0000000, 0000000, "UNKNOWN", do_unknown,   NO_PARAM}
 };
 
@@ -69,7 +74,10 @@ noflag\t== 60no tracing\n\
 
 void load_file(const char * file_name){
 	FILE * f_inp = fopen(file_name, "rb");
-	assert(f_inp);
+	if (f_inp == NULL) {
+      perror(file_name);  // печатаем ошибку открытия файла на чтение, быть может его нет; или файл есть, а у вас нет прав на чтение файла
+      exit(7);          // даже если тесты проверяющей системой не показаны, код возврата в тесте показан всегда
+  }
 	unsigned int start = 0, i = 0, n = 0 ,w = 0;
 
 	while(2 == fscanf(f_inp,"%x%x",&start, &n)){

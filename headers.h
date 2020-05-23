@@ -20,6 +20,7 @@ typedef word Adress;
 #define MEM 5
 #define odata 0177566
 #define ostat 0177564
+#define ocsr = 0177564
 extern byte N, Z, V, C;
 extern byte it_is_byte;
 extern int nn;
@@ -68,13 +69,14 @@ void do_clr();
 void do_cmp();
 void do_cmpb();
 void do_jmp();
+void do_rol();
+void do_inc();
 void do_unknown();
 
 void trace(const char *  format, ...);
 void load_file(const char * file_name);
 
 #endif
-
 
 
 
